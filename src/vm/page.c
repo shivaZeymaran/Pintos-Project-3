@@ -211,7 +211,7 @@ vm_load_page(struct supplemental_page_table *supt, uint32_t *pagedir, void *upag
   if(spte->status == ON_FRAME) {
     // already loaded
 
-    /*--------------------- Refinement 2  -----------------------*/
+    /*--------------------- Refinement 4  -----------------------*/
     spte->ref_time = timer_ticks();   // hit occurred. referenced time must update
 
     return true;
@@ -263,7 +263,7 @@ vm_load_page(struct supplemental_page_table *supt, uint32_t *pagedir, void *upag
   spte->kpage = frame_page;
   spte->status = ON_FRAME;
 
-  /*--------------------- Refinement 3  -----------------------*/
+  /*--------------------- Refinement 5  -----------------------*/
   spte->ref_time = timer_ticks();   // Miss occurred. Now is on frame so referenced time must update
 
   pagedir_set_dirty (pagedir, frame_page, false);

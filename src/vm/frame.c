@@ -54,7 +54,6 @@ vm_frame_init ()
   lock_init (&frame_lock);
   hash_init (&frame_map, frame_hash_func, frame_less_func, NULL);
   list_init (&frame_list);
-  clock_ptr = NULL;
 }
 
 /**

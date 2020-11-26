@@ -10,7 +10,7 @@
 #include "vm/page.h"
 #include "vm/frame.h"
 #include "filesys/file.h"
-#include "timer.h"                   /*--------------------- Refinement 1  -----------------------*/
+#include "timer.h"                   /*--------------------- Refinement 1 -----------------------*/
 
 
 static unsigned spte_hash_func(const struct hash_elem *elem, void *aux);
@@ -25,6 +25,10 @@ vm_supt_create (void)
     (struct supplemental_page_table*) malloc(sizeof(struct supplemental_page_table));
 
   hash_init (&supt->page_map, spte_hash_func, spte_less_func, NULL);
+
+  /*--------------------- Refinement 2 -----------------------*/
+  list_init (&page_list);
+
   return supt;
 }
 
@@ -58,6 +62,10 @@ vm_supt_install_frame (struct supplemental_page_table *supt, void *upage, void *
   spte->swap_index = -1;
 
   struct hash_elem *prev_elem;
+
+  /*--------------------- Refinement 3 -----------------------*/
+  list_push_back (&page_list, &spte->lelem);
+
   prev_elem = hash_insert (&supt->page_map, &spte->elem);
   if (prev_elem == NULL) {
     // successfully inserted into the supplemental page table.

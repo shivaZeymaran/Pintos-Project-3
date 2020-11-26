@@ -5,8 +5,9 @@
 #include <hash.h>
 #include "filesys/off_t.h"
 
-
-static struct list page_list;     /*------------ Refinement 1 ------------*/
+/*--------------------- Refinement 1 -----------------------*/
+/** A list of pages for the LRU eviction algorithm **/
+static struct list page_list;     // list of on_frame pages
 
 /**
  * Indicates a state of page.

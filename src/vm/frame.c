@@ -173,9 +173,8 @@ vm_frame_do_free (void *kpage, bool free_page)
 /** Frame Eviction Strategy : The LRU Algorithm */
 
 struct frame_table_entry* LRU_frame_next(void);
-void *min_ref_time_page();
-struct frame_table_entry * compare_kpage(void *kpage);
-struct supplemental_page_table_entry * compare_ref_time();
+struct supplemental_page_table_entry* min_ref_time_page();
+struct frame_table_entry* compare_kpage(void *kpage);
 
 struct frame_table_entry* pick_frame_to_evict(){
     size_t n = hash_size(&frame_map);
@@ -201,43 +200,39 @@ struct frame_table_entry* LRU_frame_next(void){
     if (list_empty(&frame_list))
         PANIC("Frame table is empty, can't happen - there is a leak somewhere");
 
-    void *kpage_temp = min_ref_time_page();
-    struct frame_table_entry *e = compare_kpage(kpage_temp);
+    struct supplemental_page_table_entry *spte = min_ref_time_page();
+    struct frame_table_entry *e = compare_kpage(spte->kpage);
     return e;
 }
 
-void *min_ref_time_page(){
+struct supplemental_page_table_entry* min_ref_time_page(){
     if (list_empty(&page_list))
         PANIC("Page list is empty, can't happen");
 
-    struct supplemental_page_table_entry *e = compare_ref_time();
-    return e->kpage;
+    struct supplemental_page_table_entry *spte;
+    struct supplemental_page_table_entry *min_ref_spte;
+    uint64_t min_ref_time = UINT64_MAX;
+
+    struct list_elem* i;
+    for (i= list_begin(&page_list); i<list_end(&page_list); i++){
+        spte = list_entry(i, struct supplemental_page_table_entry, lelem);
+        if (spte->ref_time < min_ref_time) {
+            min_ref_time = spte->ref_time;
+            min_ref_spte = spte;
+        }
+    }
+    return min_ref_spte;
 }
 
 struct frame_table_entry * compare_kpage(void *kpage){
     struct list_elem* i;
-    for (i= list_begin(&frame_list); i<list_end(&frame_list); i++){
+    for (i = list_begin(&frame_list); i < list_end(&frame_list); i++){
         struct frame_table_entry *e = list_entry(i, struct frame_table_entry, lelem);
         if (e->kpage == kpage)
             return e;
     }
 }
 
-struct supplemental_page_table_entry * compare_ref_time(){
-    struct supplemental_page_table_entry *e;
-    struct supplemental_page_table_entry *min_ref_e;
-    uint64_t min_ref_time = UINT64_MAX;
-
-    struct list_elem* i;
-    for (i= list_begin(&page_list); i<list_end(&page_list); i++){
-        e = list_entry(i, struct supplemental_page_table_entry, lelem);
-        if (e->ref_time < min_ref_time) {
-            min_ref_time = e->ref_time;
-            min_ref_e = e;
-        }
-    }
-    return min_ref_e;
-}
 /*----------------------------------------------------------------------------------*/
 
 static void

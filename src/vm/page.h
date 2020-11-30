@@ -9,6 +9,7 @@
 /** A list of pages for the LRU eviction algorithm **/
 static struct list page_list;     // list of on_frame pages
 
+
 /**
  * Indicates a state of page.
  */
@@ -55,6 +56,10 @@ struct supplemental_page_table_entry
     off_t file_offset;
     uint32_t read_bytes, zero_bytes;
     bool writable;
+
+    /********************* Optional Refinement 1 ********************/
+    uint64_t ASID;             /* Address-spaced identifier. only used for status: FROM_FILESYS */
+
   };
 
 

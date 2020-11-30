@@ -41,6 +41,10 @@ struct frame_table_entry
 
     bool pinned;               /* Used to prevent a frame from being evicted, while it is acquiring some resources.
                                   If it is true, it is never evicted. */
+
+    /********************* Optional Refinement 1 ********************/
+    uint64_t ASIDCounter;
+
   };
 
 

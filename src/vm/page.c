@@ -12,6 +12,8 @@
 #include "filesys/file.h"
 #include "timer.h"                   /*--------------------- Refinement 1 -----------------------*/
 
+/********************* Optional Refinement 1 ********************/
+#include "frame.c"
 
 static unsigned spte_hash_func(const struct hash_elem *elem, void *aux);
 static bool     spte_less_func(const struct hash_elem *, const struct hash_elem *, void *aux);
@@ -142,6 +144,9 @@ vm_supt_install_filesys (struct supplemental_page_table *supt, void *upage,
   spte->zero_bytes = zero_bytes;
   spte->writable = writable;
 
+  /********************* Optional Refinement 2 ********************/
+  spte->ASID = 1; // At first ASID should set to 1
+
   struct hash_elem *prev_elem;
   prev_elem = hash_insert (&supt->page_map, &spte->elem);
   if (prev_elem == NULL) return true;
@@ -193,6 +198,20 @@ vm_supt_set_dirty (struct supplemental_page_table *supt, void *page, bool value)
 
 static bool vm_load_page_from_filesys(struct supplemental_page_table_entry *, void *);
 
+/********************* Optional Refinement 3 ********************/
+struct supplemental_page_table_entry*
+vm_supt_lookup_by_file (struct supplemental_page_table *supt, struct file *file)
+{
+    // create a temporary object, just for looking up the hash table.
+    struct supplemental_page_table_entry spte_temp;
+    spte_temp.file = file;
+
+    struct hash_elem *elem = hash_find (&supt->page_map, &spte_temp.elem);
+    if(elem == NULL) return NULL;
+    return hash_entry(elem, struct supplemental_page_table_entry, elem);
+}
+/***************************************************************/
+
 /**
  * Load the page, specified by the address `upage`, back into the memory.
  */
@@ -218,10 +237,31 @@ vm_load_page(struct supplemental_page_table *supt, uint32_t *pagedir, void *upag
   }
 
   // 2. Obtain a frame to store the page
-  void *frame_page = vm_frame_allocate(PAL_USER, upage);
-  if(frame_page == NULL) {
-    return false;
+  /********************* Optional Refinement 4 ********************/
+  void *frame_page;
+  bool is_share = false; // First assume we don't need sharing a page
+
+  if(spte->status == FROM_FILESYS){
+      struct supplemental_page_table_entry *spte_temp;
+      spte_temp = vm_supt_lookup_by_file(supt, spte->file);
+      if(spte_temp != NULL){ // if we have another page with the same file
+          if (spte_temp->writable == 0 && spte_temp->kpage != NULL) { // it's read-only page and this page is on frame, now. so share it safely!
+            frame_page = spte_temp->kpage;
+            struct frame_table_entry *e = compare_kpage(frame_page);
+            spte->ASID = ++(e->ASIDCounter);
+            is_share = true;
+          }
+      }
   }
+  if (is_share == false) { // No same executable read-only file, so allocat new frame
+      frame_page = vm_frame_allocate(PAL_USER, upage);
+      if (frame_page == NULL) {
+          return false;
+      }
+      struct frame_table_entry *e = compare_kpage(frame_page);
+      e->ASIDCounter = 1;
+  }
+  /***************************************************************/
 
   // 3. Fetch the data into the frame
   bool writable = true;
